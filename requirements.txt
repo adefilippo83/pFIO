@@ -10,7 +10,6 @@ parallel-ssh==0.80.3
 paramiko==1.16.0
 pycrypto==2.6.1
 pycurl==7.19.0
-pygpgme==0.3
 pyliblzma==0.5.3
 pyudev==0.15
 pyxattr==0.5.1
