@@ -1,5 +1,4 @@
 FROM debian:jessie
-
 RUN apt-get update
 RUN apt-get -y install python
 RUN apt-get -y install python-pip

@@ -94,7 +94,6 @@ def main(argv):
 			ClassTest = FioTestCase()
 			ClassTest.runTest()
 			sys.exit()
-			
 	ClassMain = FioMain()
 	ClassMain.run_fio(block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug)
 
