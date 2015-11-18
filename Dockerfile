@@ -1,9 +1,5 @@
 FROM debian:jessie
 
-RUN mkdir /app
-ADD run_fio.py /app/
-ADD requirements.txt /app/
-WORKDIR /app
 RUN apt-get update
 RUN apt-get -y install python
 RUN apt-get -y install python-pip
@@ -22,7 +18,11 @@ RUN apt-get -y install libcomerr2
 RUN apt-get -y install libldap2-dev libldap-2.4.2
 RUN apt-get -y install liblz1 liblz-dev
 RUN apt-get -y install libgcrypt11-dev
+RUN mkdir /app
+ADD run_fio.py /app/
+ADD requirements.txt /app/
+WORKDIR /app
 RUN pip install -r requirements.txt
 RUN python run_fio.py -u
 RUN chmod 755 /app/run_fio.py
-ENTRYPOINT /app/run_fio.py
+ENTRYPOINT /bin/bash
