@@ -43,11 +43,11 @@ class FioMain():
 		client.pool.join()
 		aggregate={}
 		for host in output:
-        		for line in output[host]['stdout']:
+			for line in output[host]['stdout']:
 				pattern = re.compile("^WRITE: io=|^READ: io=")
 				if pattern.match(line):
 					aggregate[host]=line
-                			print "Host %s - output: %s" % (host, line)
+					print "Host %s - output: %s" % (host, line)
 	
 		n=0
 		for host in aggregate:
@@ -58,45 +58,45 @@ class FioMain():
 		time.sleep(10)
 		output = client.run_command("rbd rm $HOSTNAME --pool "+pool_fio)
 		client.pool.join()
-        	for host in output:
-                	if output[host]['exit_code'] != 0:
-				print "Error removing rbd device"
-				sys.exit(1)
+    	for host in output:
+				if output[host]['exit_code'] != 0:
+					print "Error removing rbd device"
+					sys.exit(1)
 
 def main(argv):
-       	block_size = '4096'
-       	test_mode = 'randwrite'
-       	size_fio = '50'
-        pool_fio = 'cold-storage'
-        num_jobs = '4'
+	block_size = '4096'
+	test_mode = 'randwrite'
+	size_fio = '50'
+	pool_fio = 'cold-storage'
+	num_jobs = '4'
 	hosts = ['node06', 'node07', 'node08', 'node09', 'node10', 'node11']
 	debug = False
-        try:
-                opts, args = getopt.getopt(argv,"hub:t:s:p:n",["help", "unit-test", "block_size=", "test_mode=", "size=", "pool", "jobs_number="])
-        except getopt.GetoptError:
-                usage()
-                sys.exit(2)
-        for opt, arg in opts:
-                if opt in ("-h", "--help"):
-                        usage()
-                        sys.exit()
-                elif opt in ("-b", "--block_size"):
-                        block_size = arg
-                elif opt in ("-t", "--test_mode"):
-                        test_mode = arg
-                elif opt in ("-s", "--size"):
-                        size_fio = arg
-                elif opt in ("-p", "--pool"):
-                        pool_fio = arg
-                elif opt in ("-n", "--jobs_number"):
-                        num_jobs = arg
+	try:
+		opts, args = getopt.getopt(argv,"hub:t:s:p:n",["help", "unit-test", "block_size=", "test_mode=", "size=", "pool", "jobs_number="])
+	except getopt.GetoptError:
+		usage()
+		sys.exit(2)
+	for opt, arg in opts:
+		if opt in ("-h", "--help"):
+			usage()
+			sys.exit()
+		elif opt in ("-b", "--block_size"):
+			block_size = arg
+		elif opt in ("-t", "--test_mode"):
+			test_mode = arg
+		elif opt in ("-s", "--size"):
+			size_fio = arg
+		elif opt in ("-p", "--pool"):
+			pool_fio = arg
+		elif opt in ("-n", "--jobs_number"):
+			num_jobs = arg
 		elif opt in ("-u", "--unit-test"):
 			ClassTest = FioTestCase()
 			ClassTest.runTest()
 			sys.exit()
 			
-        ClassMain = FioMain()
+	ClassMain = FioMain()
 	ClassMain.run_fio(block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug)
 
 if __name__ == "__main__":
-        main(sys.argv[1:])
+	main(sys.argv[1:])
