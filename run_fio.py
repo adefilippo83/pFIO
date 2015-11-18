@@ -17,27 +17,24 @@ def usage():
 
 
 class FioTestCase(unittest.TestCase):
-	def runTest(self):
-		block_size = '4096'
-	        test_mode = 'randwrite'
-	        size_fio = '50'
-	        pool_fio = 'cold-storage'
-	        num_jobs = '4'
-	        hosts = ['localhost']
-	        debug = True
-		ClassMain = FioMain()
-        	TestOutput = ClassMain.run_fio(block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug)
-		self.assertEqual( int(TestOutput), 0)
+def runTest(self):	
+	block_size = '4096'
+	test_mode = 'randwrite'
+	size_fio = '50'
+	pool_fio = 'cold-storage'
+	num_jobs = '4'
+	hosts = ['localhost']
+	debug = True
+	ClassMain = FioMain()
+	block_size2, test_mode2, size_io2, pool_fio2, num_jobs2, hosts2, debug2 = ClassMain.run_fio(block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug)
+	self.assertEqual(block_size, block_size2)
 
 class FioMain():
 	def run_fio(self, block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug):
 		client_key = paramiko.RSAKey.from_private_key_file('/root/.ssh/id_rsa')
 		client = ParallelSSHClient(hosts, pkey=client_key)
 		if debug:
-			output = client.run_command("echo TEST")
-			for host in output:
-				return output[host]['exit_code']
-				break
+				return block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug
 		output = client.run_command("rbd create $HOSTNAME --size "+size_fio+" -k /etc/ceph/ceph.client.admin.keyring --pool "+pool_fio)
 		for host in output:
 			for line in output[host]['stdout']:
