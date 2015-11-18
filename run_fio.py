@@ -17,17 +17,17 @@ def usage():
 
 
 class FioTestCase(unittest.TestCase):
-def runTest(self):	
-	block_size = '4096'
-	test_mode = 'randwrite'
-	size_fio = '50'
-	pool_fio = 'cold-storage'
-	num_jobs = '4'
-	hosts = ['localhost']
-	debug = True
-	ClassMain = FioMain()
-	block_size2, test_mode2, size_io2, pool_fio2, num_jobs2, hosts2, debug2 = ClassMain.run_fio(block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug)
-	self.assertEqual(block_size, block_size2)
+	def runTest(self):	
+		block_size = '4096'
+		test_mode = 'randwrite'
+		size_fio = '50'
+		pool_fio = 'cold-storage'
+		num_jobs = '4'
+		hosts = ['localhost']
+		debug = True
+		ClassMain = FioMain()
+		block_size2, test_mode2, size_io2, pool_fio2, num_jobs2, hosts2, debug2 = ClassMain.run_fio(block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug)
+		self.assertEqual(block_size, block_size2)
 
 class FioMain():
 	def run_fio(self, block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug):
