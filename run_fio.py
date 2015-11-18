@@ -31,10 +31,10 @@ class FioTestCase(unittest.TestCase):
 
 class FioMain():
 	def run_fio(self, block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug):
-		client_key = paramiko.RSAKey.from_private_key_file('/root/.ssh/id_rsa')
-		client = ParallelSSHClient(hosts, pkey=client_key)
 		if debug:
 				return block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug
+    client_key = paramiko.RSAKey.from_private_key_file('/root/.ssh/id_rsa')
+    client = ParallelSSHClient(hosts, pkey=client_key)
 		output = client.run_command("rbd create $HOSTNAME --size "+size_fio+" -k /etc/ceph/ceph.client.admin.keyring --pool "+pool_fio)
 		for host in output:
 			for line in output[host]['stdout']:
