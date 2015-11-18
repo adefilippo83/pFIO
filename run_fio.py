@@ -58,10 +58,10 @@ class FioMain():
 		time.sleep(10)
 		output = client.run_command("rbd rm $HOSTNAME --pool "+pool_fio)
 		client.pool.join()
-    	for host in output:
-				if output[host]['exit_code'] != 0:
-					print "Error removing rbd device"
-					sys.exit(1)
+		for host in output:
+			if output[host]['exit_code'] != 0:
+				print "Error removing rbd device"
+				sys.exit(1)
 
 def main(argv):
 	block_size = '4096'
