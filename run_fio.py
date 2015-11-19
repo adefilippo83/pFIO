@@ -17,6 +17,7 @@ def usage():
 
 
 class FioTestCase(unittest.TestCase):
+
 	def runTest(self):	
 		block_size = '4096'
 		test_mode = 'randwrite'
@@ -24,44 +25,87 @@ class FioTestCase(unittest.TestCase):
 		pool_fio = 'cold-storage'
 		num_jobs = '4'
 		hosts = ['localhost']
-		debug = True
-		ClassMain = FioMain()
-		block_size2, test_mode2, size_io2, pool_fio2, num_jobs2, hosts2, debug2 = ClassMain.run_fio(block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug)
-		self.assertEqual(block_size, block_size2)
+		io_engine = 'rbd'
+		io_depth = '32'
+		ClassMain = FioMain(io_engine, size_fio, pool_fio, hosts)
+		fio_cmd = ClassMain.create_fio_command(block_size, test_mode, num_jobs, io_depth)
+		fio_expected_cmd = 'fio --name=fio-test --ioengine=rbd --pool=cold-storage --rbdname=$HOSTNAME --iodepth=32 --rw=randwrite --bs=4096k --direct=0 --size=50M --numjobs=4'
+		self.assertEqual(fio_cmd, fio_expected_cmd)
+		io_engine = ''
+		ClassMain = FioMain(io_engine, size_fio, pool_fio, hosts)
+		prepare_cmd = ClassMain.prepare_run()
+		self.assertEqual(prepare_cmd, None)
+		clean_cmd = ClassMain.clean_run()
+		self.assertEqual(clean_cmd, None)
 
 class FioMain():
-	def run_fio(self, block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug):
-		if debug:
-			return block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug
-		client_key = paramiko.RSAKey.from_private_key_file('/root/.ssh/id_rsa')
-		client = ParallelSSHClient(hosts, pkey=client_key)
-		output = client.run_command("rbd create $HOSTNAME --size "+size_fio+" -k /etc/ceph/ceph.client.admin.keyring --pool "+pool_fio)
+	def __init__(self, io_engine, size_fio, pool_fio, hosts):
+		self.ioengine = io_engine
+		self.sizefio = size_fio
+		self.poolfio = pool_fio
+		self.hosts = hosts
+
+	def create_fio_command(self, block_size, test_mode, num_jobs, io_depth):
+		command = "fio --name=fio-test --ioengine="+self.ioengine+" "
+		if self.poolfio:
+			command += "--pool="+self.poolfio+" "
+		if self.ioengine == "rbd":
+			command += "--rbdname=$HOSTNAME "
+		command += "--iodepth="+io_depth+" --rw="+test_mode+" --bs="+block_size+"k --direct=0 --size="+self.sizefio+"M --numjobs="+num_jobs
+		return command
+
+	def prepare_run(self):
+		if self.ioengine == 'rbd':
+			command = "rbd create $HOSTNAME --size "+self.sizefio+" -k /etc/ceph/ceph.client.admin.keyring --pool "+self.poolfio
+			run = self.run_command(command)
+			return self.check_exit(run)
+
+	def clean_run(self):
+		if self.ioengine == 'rbd':
+			command = "rbd rm $HOSTNAME --pool "+self.poolfio
+			run = self.run_command(command)
+			return self.check_exit(run)
+
+	def check_exit(self, output):
 		for host in output:
-			for line in output[host]['stdout']:
-				print "Host %s - output: %s" % (host, line)
-		output = client.run_command("fio --name=fio-test --ioengine=rbd  --pool="+pool_fio+" --rbdname=$HOSTNAME --iodepth=32 --rw="+test_mode+" --bs="+block_size+"k --direct=0 --size="+size_fio+"M --numjobs="+num_jobs)
-		client.pool.join()
-		aggregate={}
+			if output[host]['exit_code'] !=0 :
+				return True
+				break
+		return False
+
+	def run_fio(self, block_size, test_mode, num_jobs, io_depth):
+		command2 = self.create_fio_command(block_size, test_mode, num_jobs, io_depth)
+		run = self.run_command(command2)
+		if self.check_exit(run):
+			aggregate = self.print_global_results(run)
+			totbw = self.aggregate_results(aggregate)
+			return totbw
+			
+	def print_global_results(self, output):
+		aggregate = {}
 		for host in output:
 			for line in output[host]['stdout']:
 				pattern = re.compile("^WRITE: io=|^READ: io=")
 				if pattern.match(line):
 					aggregate[host]=line
 					print "Host %s - output: %s" % (host, line)
-	
+		return aggregate
+
+	def aggregate_results(self, aggregate):
 		n=0
 		for host in aggregate:
 			str = aggregate[host]
 			m = re.search("(?:aggrb=([0-9]+))",str).group(1)
 			n = n+int(m)
 		print "Total bandwidth aggregate=%sKB/s" % n
-		time.sleep(10)
-		output = client.run_command("rbd rm $HOSTNAME --pool "+pool_fio)
+		return n
+
+	def run_command (self, command):
+		client_key = paramiko.RSAKey.from_private_key_file('/root/.ssh/id_rsa')
+		client = ParallelSSHClient(self.hosts, pkey=client_key)
+		output = client.run_command(command)
 		client.pool.join()
-		for host in output:
-			if output[host]['exit_code'] != 0:
-				print "Error removing rbd device"
-				sys.exit(1)
+		return output
 
 def main(argv):
 	block_size = '4096'
@@ -70,7 +114,8 @@ def main(argv):
 	pool_fio = 'cold-storage'
 	num_jobs = '4'
 	hosts = ['node06', 'node07', 'node08', 'node09', 'node10', 'node11']
-	debug = False
+	io_engine = 'rbd'
+	io_depth = '32'
 	try:
 		opts, args = getopt.getopt(argv,"hub:t:s:p:n",["help", "unit-test", "block_size=", "test_mode=", "size=", "pool", "jobs_number="])
 	except getopt.GetoptError:
@@ -94,8 +139,12 @@ def main(argv):
 			ClassTest = FioTestCase()
 			ClassTest.runTest()
 			sys.exit()
-	ClassMain = FioMain()
-	ClassMain.run_fio(block_size, test_mode, size_fio, pool_fio, num_jobs, hosts, debug)
+	ClassMain = FioMain(io_engine, size_fio, pool_fio, hosts)
+	if ClassMain.prepare_run():
+		print 'error preparing'
+	ClassMain.run_fio(block_size, test_mode, num_jobs, io_depth)
+	if ClassMain.clean_run():
+		print 'error cleaning'
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
