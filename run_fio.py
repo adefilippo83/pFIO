@@ -2,7 +2,7 @@
 
 import gevent.monkey; gevent.monkey.patch_all()
 from pssh import ParallelSSHClient
-import paramiko,threading,re,sys,getopt,time,unittest
+import paramiko,threading,re,sys,getopt,time,unittest,ConfigParser,io
 
 def usage():
 	print "Test RBD on multiple host"
@@ -17,7 +17,6 @@ def usage():
 
 
 class FioTestCase(unittest.TestCase):
-
 	def runTest(self):	
 		block_size = '4096'
 		test_mode = 'randwrite'
@@ -108,14 +107,17 @@ class FioMain():
 		return output
 
 def main(argv):
-	block_size = '4096'
-	test_mode = 'randwrite'
-	size_fio = '50'
-	pool_fio = 'cold-storage'
-	num_jobs = '4'
-	hosts = ['node06', 'node07', 'node08', 'node09', 'node10', 'node11']
-	io_engine = 'rbd'
-	io_depth = '32'
+	config = ConfigParser.RawConfigParser(allow_no_value=True)
+	config.readfp(open('pfio.cfg'))
+	block_size = config.get("general", "block_size")
+	test_mode = config.get("general", "test_mode")
+	size_fio = config.get("general", "size_fio")
+	pool_fio = config.get("general", "pool_fio")
+	num_jobs = config.get("general", "num_jobs")
+	hosts = config.get("general", "hosts").split(",")
+	io_engine = config.get("general", "io_engine")
+	io_depth = config.get("general", "io_depth")
+ 
 	try:
 		opts, args = getopt.getopt(argv,"hub:t:s:p:n",["help", "unit-test", "block_size=", "test_mode=", "size=", "pool", "jobs_number="])
 	except getopt.GetoptError:
