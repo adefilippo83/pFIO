@@ -19,6 +19,7 @@ RUN apt-get -y install liblz1 liblz-dev
 RUN apt-get -y install libgcrypt11-dev
 RUN mkdir /app
 ADD requirements.txt /app/
+ADD pfio.cfg /app/
 WORKDIR /app
 RUN pip install -r requirements.txt
 ADD run_fio.py /app/
