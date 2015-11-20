@@ -26,8 +26,9 @@ class FioTestCase(unittest.TestCase):
 		hosts = ['localhost']
 		io_engine = 'rbd'
 		io_depth = '32'
+		test_dir = False
 		ClassMain = FioMain(io_engine, size_fio, pool_fio, hosts)
-		fio_cmd = ClassMain.create_fio_command(block_size, test_mode, num_jobs, io_depth)
+		fio_cmd = ClassMain.create_fio_command(block_size, test_mode, num_jobs, io_depth, test_dir)
 		fio_expected_cmd = 'fio --name=fio-test --ioengine=rbd --pool=cold-storage --rbdname=$HOSTNAME --iodepth=32 --rw=randwrite --bs=4096k --direct=0 --size=50M --numjobs=4'
 		self.assertEqual(fio_cmd, fio_expected_cmd)
 		io_engine = ''

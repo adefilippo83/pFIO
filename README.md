@@ -6,4 +6,4 @@ parallel Flexible I/O
 
 pFIO is a python tool that will spawn a number of fio processes on multiple hosts aggregating the results.
 It doesn't use the built-in client-server method cause it's pretty difficult to manage and orchestrate.
-pFIO uses the paramiko python library in order to run FIO on multiple hosts.
+pFIO uses the paramiko python library in order to run FIO on multiple hosts: you just need to be sure that your ssh key is distributed across all nodes and that FIO is installed.
