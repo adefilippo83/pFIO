@@ -38,6 +38,10 @@ class FioTestCase(unittest.TestCase):
 		clean_cmd = ClassMain.clean_run()
 		self.assertEqual(clean_cmd, None)
 
+class FioError(Exception):
+	def __init__(self, arg):
+		self.msg = arg
+
 class FioMain():
 	def __init__(self, io_engine, size_fio, pool_fio, hosts):
 		self.ioengine = io_engine
@@ -59,29 +63,37 @@ class FioMain():
 	def prepare_run(self):
 		if self.ioengine == 'rbd':
 			command = "rbd create $HOSTNAME --size "+self.sizefio+" -k /etc/ceph/ceph.client.admin.keyring --pool "+self.poolfio
-			run = self.run_command(command)
-			return self.check_exit(run)
+			try:
+				run = self.run_command(command)
+				self.check_exit(run)
+			except FioError, arg:
+				print 'Error preparing RBD devices:', arg.msg
+			
 
 	def clean_run(self):
 		if self.ioengine == 'rbd':
 			command = "rbd rm $HOSTNAME --pool "+self.poolfio
-			run = self.run_command(command)
-			return self.check_exit(run)
+			try:
+				run = self.run_command(command)
+				self.check_exit(run)
+			except FioError, arg:
+				print 'Error cleaning RBD devices:', arg.msg
 
 	def check_exit(self, output):
 		for host in output:
-			if output[host]['exit_code'] !=0 :
-				return True
-				break
-		return False
+			if output[host]['exit_code']:
+				raise FioError('exit code is not zero')
 
 	def run_fio(self, block_size, test_mode, num_jobs, io_depth, test_dir):
 		command2 = self.create_fio_command(block_size, test_mode, num_jobs, io_depth, test_dir)
-		run = self.run_command(command2)
-		if self.check_exit(run):
-			aggregate = self.print_global_results(run)
+		try:
+			run2 = self.run_command(command2)
+			self.check_exit(run2)
+			aggregate = self.print_global_results(run2)
 			totbw = self.aggregate_results(aggregate)
 			return totbw
+		except FioError, arg:
+			print 'Error during fio execution:', arg.msg
 			
 	def print_global_results(self, output):
 		aggregate = {}
@@ -111,16 +123,24 @@ class FioMain():
 
 def main(argv):
 	config = ConfigParser.RawConfigParser(allow_no_value=True)
-	config.readfp(open('pfio.cfg'))
-	block_size = config.get("general", "block_size")
-	test_mode = config.get("general", "test_mode")
-	size_fio = config.get("general", "size_fio")
-	pool_fio = config.get("general", "pool_fio")
-	num_jobs = config.get("general", "num_jobs")
-	hosts = config.get("general", "hosts").split(",")
-	io_engine = config.get("general", "io_engine")
-	io_depth = config.get("general", "io_depth")
-	test_dir = config.get("general", "test_dir")
+	try:
+		config.readfp(open('pfio.cfg'))
+	except:
+		print "No pfio.cfg config file found!"
+		sys.exit(2)
+	try:
+		block_size = config.get("general", "block_size")
+		test_mode = config.get("general", "test_mode")
+		size_fio = config.get("general", "size_fio")
+		pool_fio = config.get("general", "pool_fio")
+		num_jobs = config.get("general", "num_jobs")
+		hosts = config.get("general", "hosts").split(",")
+		io_engine = config.get("general", "io_engine")
+		io_depth = config.get("general", "io_depth")
+		test_dir = config.get("general", "test_dir")
+	except ConfigParser.NoOptionError as e:
+		print e
+		sys.exit(2)
  
 	try:
 		opts, args = getopt.getopt(argv,"hub:t:s:p:n",["help", "unit-test", "block_size=", "test_mode=", "size=", "pool", "jobs_number="])
@@ -146,11 +166,9 @@ def main(argv):
 			ClassTest.runTest()
 			sys.exit()
 	ClassMain = FioMain(io_engine, size_fio, pool_fio, hosts)
-	if ClassMain.prepare_run():
-		print 'error preparing'
+	ClassMain.prepare_run()
 	ClassMain.run_fio(block_size, test_mode, num_jobs, io_depth, test_dir)
-	if ClassMain.clean_run():
-		print 'error cleaning'
+	ClassMain.clean_run()
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
