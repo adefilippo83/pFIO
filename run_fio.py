@@ -44,12 +44,14 @@ class FioMain():
 		self.poolfio = pool_fio
 		self.hosts = hosts
 
-	def create_fio_command(self, block_size, test_mode, num_jobs, io_depth):
+	def create_fio_command(self, block_size, test_mode, num_jobs, io_depth, test_dir):
 		command = "fio --name=fio-test --ioengine="+self.ioengine+" "
 		if self.poolfio:
 			command += "--pool="+self.poolfio+" "
 		if self.ioengine == "rbd":
 			command += "--rbdname=$HOSTNAME "
+		if test_dir:
+			command += "--directory="+test_dir+" "
 		command += "--iodepth="+io_depth+" --rw="+test_mode+" --bs="+block_size+"k --direct=0 --size="+self.sizefio+"M --numjobs="+num_jobs
 		return command
 
@@ -72,8 +74,8 @@ class FioMain():
 				break
 		return False
 
-	def run_fio(self, block_size, test_mode, num_jobs, io_depth):
-		command2 = self.create_fio_command(block_size, test_mode, num_jobs, io_depth)
+	def run_fio(self, block_size, test_mode, num_jobs, io_depth, test_dir):
+		command2 = self.create_fio_command(block_size, test_mode, num_jobs, io_depth, test_dir)
 		run = self.run_command(command2)
 		if self.check_exit(run):
 			aggregate = self.print_global_results(run)
@@ -117,6 +119,7 @@ def main(argv):
 	hosts = config.get("general", "hosts").split(",")
 	io_engine = config.get("general", "io_engine")
 	io_depth = config.get("general", "io_depth")
+	test_dir = config.get("general", "test_dir")
  
 	try:
 		opts, args = getopt.getopt(argv,"hub:t:s:p:n",["help", "unit-test", "block_size=", "test_mode=", "size=", "pool", "jobs_number="])
@@ -144,7 +147,7 @@ def main(argv):
 	ClassMain = FioMain(io_engine, size_fio, pool_fio, hosts)
 	if ClassMain.prepare_run():
 		print 'error preparing'
-	ClassMain.run_fio(block_size, test_mode, num_jobs, io_depth)
+	ClassMain.run_fio(block_size, test_mode, num_jobs, io_depth, test_dir)
 	if ClassMain.clean_run():
 		print 'error cleaning'
 
